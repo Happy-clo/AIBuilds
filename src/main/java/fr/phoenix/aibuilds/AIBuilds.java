@@ -8,6 +8,7 @@ import fr.phoenix.aibuilds.compat.placeholder.PlaceholderParser;
 import fr.phoenix.aibuilds.listener.PlayerListener;
 import fr.phoenix.aibuilds.manager.ConfigManager;
 import fr.phoenix.aibuilds.manager.PaletteManager;
+import fr.phoenix.aibuilds.manager.TokenManager;
 import fr.phoenix.aibuilds.version.SpigotPlugin;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -20,6 +21,7 @@ public class AIBuilds extends JavaPlugin {
     public PaletteManager paletteManager = new PaletteManager();
     public ConfigManager configManager = new ConfigManager();
     public PlaceholderParser placeholderParser = new DefaultPlaceholderParser();
+    public TokenManager tokenManager = new TokenManager();
 
     @Override
     public void onEnable() {
@@ -49,6 +51,18 @@ public class AIBuilds extends JavaPlugin {
 
     }
 
+    @Override
+    public void onDisable() {
+        //Executes all the pending asynchronous task (like saving the playerData)
+        Bukkit.getScheduler().getPendingTasks().forEach(worker -> {
+            if (worker.getOwner().equals(this)) {
+                ((Runnable) worker).run();
+            }
+        });
+        Bukkit.getOnlinePlayers().forEach(player -> tokenManager.save(player));
+
+    }
+
 
     @Override
     public void onLoad() {
@@ -58,6 +72,12 @@ public class AIBuilds extends JavaPlugin {
     public void initializePlugin(boolean clearBefore) {
         if (clearBefore)
             reloadConfig();
+        //Load manager
+        configManager.load(clearBefore);
+        Bukkit.getScheduler().runTaskAsynchronously(this, () -> {
+            paletteManager.load(clearBefore);
+        });
+        Bukkit.getOnlinePlayers().forEach(player -> tokenManager.load(player));
     }
 
 
