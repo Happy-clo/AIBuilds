@@ -1,0 +1,17 @@
+name: AIBuilds
+main: fr.phoenix.aibuilds.AIBuilds
+version: ${project.version}
+api-version: 1.13
+softdepend: [ PlaceholderAPI ]
+permissions:
+  aibuilds.admin:
+    description: AIBuilds Admin Permission.
+    default: op
+  aibuilds.aibuilds:
+    description: Gives access to /AIBuilds command
+    default: op
+
+commands:
+  aibuilds:
+    description: Main command.
+    aliases: [ ai, aibuild ]

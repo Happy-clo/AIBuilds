@@ -1,0 +1,32 @@
+#This field needs to be filled for the plugin to work. See the pricing and sign in on https://replicate.com/pricing.
+#api-token:
+
+#This is referencing to the IA model that is used. If you want to change the IA model, check: https://replicate.com/cjwbw/point-e/versions.
+model-version: 712f20305119ccc0df061a4ee130124e2d181ecc91cbcfed3ce372f3addb0ca3
+
+#Time in tick between each update of the progress bar.
+progress-bar-update-time: 60
+
+#Default size of the builds.
+default-size: 30
+
+#Angle in degree done each time a translation is made.
+angle-per-rotation: 10
+
+#The number of blocks moved each time a translation is made.
+blocks-per-translation: 2
+
+#The size augmentation when upsizing the construction.
+blocks-per-upsize: 5
+
+#The increase of the treshold per iteration
+threshold-increase: 0.02
+
+#The token used by a player when he creates a build.
+token-consumption:
+  2d: 0
+  prompt: 1
+  low: 1
+  mid: 2
+  high: 5
+
