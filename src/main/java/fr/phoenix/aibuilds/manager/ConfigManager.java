@@ -9,9 +9,11 @@ import java.io.IOException;
 import java.nio.file.Files;
 
 public class ConfigManager {
-    public int anglePerRotation, blocksPerTranslation, blocksPerUpsize, defaultSize, promptToken, lowToken, midToken, highToken, twoDToken;
+    public int anglePerRotation, blocksPerTranslation, blocksPerUpsize, maxBatchSize, defaultSize, promptToken, lowToken, midToken, highToken, twoDToken;
     public long progressBarUpdateTime;
     public double thresholdIncrease;
+
+    public boolean debug;
     public String APIToken, modelVersion;
 
     public void load(boolean clearBefore) {
@@ -28,6 +30,7 @@ public class ConfigManager {
         midToken = AIBuilds.plugin.getConfig().getInt("token-consumption.mid");
         highToken = AIBuilds.plugin.getConfig().getInt("token-consumption.high");
         twoDToken = AIBuilds.plugin.getConfig().getInt("token-consumption.2d");
+        maxBatchSize = AIBuilds.plugin.getConfig().getInt("max-batch-size");
         loadDefaultFile("palette.yml");
 
         // Save default messages

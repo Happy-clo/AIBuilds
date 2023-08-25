@@ -5,6 +5,7 @@ import fr.phoenix.aibuilds.command.objects.CommandTreeNode;
 import fr.phoenix.aibuilds.command.objects.parameter.Parameter;
 import fr.phoenix.aibuilds.communication.CommunicationHandler;
 import fr.phoenix.aibuilds.communication.ConstructionHandler;
+import fr.phoenix.aibuilds.communication.RequestType;
 import fr.phoenix.aibuilds.utils.message.Message;
 import org.bukkit.Location;
 import org.bukkit.command.CommandSender;
@@ -31,7 +32,7 @@ public class TwoDTreeNode extends CommandTreeNode {
 
             if (AIBuilds.plugin.tokenManager.getToken(player) < AIBuilds.plugin.configManager.promptToken) {
                 Message.NOT_ENOUGH_TOKEN.format("needed-tokens", AIBuilds.plugin.configManager.promptToken, "owned-tokens", AIBuilds.plugin.tokenManager.getToken(player)).send(player);
-                return CommandResult.FAILURE;
+                return CommandResult.THROW_USAGE;
             }
             StringBuilder builder = new StringBuilder();
 
@@ -42,10 +43,10 @@ public class TwoDTreeNode extends CommandTreeNode {
             String prompt = builder.toString();
             int size = AIBuilds.plugin.configManager.defaultSize;
             Location location = player.getLocation().add(new Vector(size / 2 + 1, size / 2, size / 2 + 1));
-            ConstructionHandler handler = new ConstructionHandler(player, location, size,false);
+            ConstructionHandler handler = new ConstructionHandler(player, location, size);
             CommunicationHandler client = new CommunicationHandler(handler);
             try {
-                client.request2DImage(prompt);
+                client.request(new String[]{prompt}, RequestType.TWOD);
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }

@@ -5,6 +5,7 @@ import fr.phoenix.aibuilds.command.objects.CommandTreeNode;
 import fr.phoenix.aibuilds.command.objects.parameter.Parameter;
 import fr.phoenix.aibuilds.communication.CommunicationHandler;
 import fr.phoenix.aibuilds.communication.ConstructionHandler;
+import fr.phoenix.aibuilds.communication.RequestType;
 import fr.phoenix.aibuilds.utils.message.Message;
 import org.bukkit.Location;
 import org.bukkit.command.CommandSender;
@@ -17,7 +18,6 @@ import java.util.function.Supplier;
 public class ImageTreeNode extends CommandTreeNode {
     public ImageTreeNode(CommandTreeNode parent) {
         super(parent, "image");
-        addParameter(Parameter.QUALITY);
         addParameter(Parameter.IMAGE);
     }
 
@@ -32,22 +32,22 @@ public class ImageTreeNode extends CommandTreeNode {
         Player player = (Player) sender;
 
         if (args.length < 2)
-            return CommandResult.FAILURE;
+            return CommandResult.THROW_USAGE;
 
-        int tokenConsumed=AIBuilds.plugin.configManager.midToken;
+        int tokenConsumed = AIBuilds.plugin.configManager.midToken;
 
         if (AIBuilds.plugin.tokenManager.getToken(player) < tokenConsumed) {
             Message.NOT_ENOUGH_TOKEN.format("needed-tokens", tokenConsumed, "owned-tokens", AIBuilds.plugin.tokenManager.getToken(player)).send(player);
             return CommandResult.FAILURE;
         }
 
-        String imageURL = args[2];
+        String imageURL = args[1];
         int size = AIBuilds.plugin.configManager.defaultSize;
         Location location = player.getLocation().add(new Vector(size / 2 + 1, size / 2, size / 2 + 1));
-        ConstructionHandler handler = new ConstructionHandler(player, location, size,true);
+        ConstructionHandler handler = new ConstructionHandler(player, location, size);
         CommunicationHandler client = new CommunicationHandler(handler);
         try {
-            client.requestImage(imageURL);
+            client.request(new String[]{imageURL}, RequestType.POINTE_IMAGE);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

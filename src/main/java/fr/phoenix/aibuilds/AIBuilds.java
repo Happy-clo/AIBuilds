@@ -72,6 +72,7 @@ public class AIBuilds extends JavaPlugin {
     public void initializePlugin(boolean clearBefore) {
         if (clearBefore)
             reloadConfig();
+
         //Load manager
         configManager.load(clearBefore);
         Bukkit.getScheduler().runTaskAsynchronously(this, () -> {
@@ -79,7 +80,6 @@ public class AIBuilds extends JavaPlugin {
         });
         Bukkit.getOnlinePlayers().forEach(player -> tokenManager.load(player));
     }
-
 
     public static void log(String message) {
         plugin.getLogger().log(Level.WARNING, message);

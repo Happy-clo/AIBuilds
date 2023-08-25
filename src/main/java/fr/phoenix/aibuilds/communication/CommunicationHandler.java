@@ -4,12 +4,10 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import fr.phoenix.aibuilds.AIBuilds;
-import fr.phoenix.aibuilds.communication.responsehandler.ResponseHandler;
-import fr.phoenix.aibuilds.communication.responsehandler.ThreeDResponseHandler;
+import fr.phoenix.aibuilds.communication.responsehandler.ShapEPromptResponseHandler;
 import fr.phoenix.aibuilds.communication.responsehandler.TwoDResponseHandler;
 import fr.phoenix.aibuilds.utils.message.Message;
 import org.apache.commons.lang.Validate;
-import org.bukkit.Bukkit;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -18,24 +16,18 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 
 public class CommunicationHandler {
-
-    private final String SHAPE_VERSION="ac9d5d031b897e0eb63a0dbc068c9ac8e7928b72b666f663b204709f1b12dd30";
     private final ConstructionHandler constructionHandler;
-    private final int GRID_SIZE = 10;
 
     public CommunicationHandler(ConstructionHandler constructionHandler) {
         this.constructionHandler = constructionHandler;
     }
 
+    public void request(String[] input, RequestType requestType) throws IOException {
 
-    public void request2D(URL url, String data) throws IOException {
+        URL url = new URL("https://api.replicate.com/v1/predictions");
+        String data = requestType.processInput(input);
         URL getURL = requestURL(url, data);
-        new TwoDResponseHandler(constructionHandler, getURL).runTaskTimer(AIBuilds.plugin, 0, AIBuilds.plugin.configManager.progressBarUpdateTime);
-    }
-
-    public void request3D(URL url, String data) throws IOException {
-        URL getURL = requestURL(url, data);
-        new ThreeDResponseHandler(constructionHandler, getURL).runTaskTimer(AIBuilds.plugin, 0, AIBuilds.plugin.configManager.progressBarUpdateTime);
+        requestType.handleResponse(constructionHandler, getURL);
     }
 
     public URL requestURL(URL url, String data) throws IOException {
@@ -81,29 +73,8 @@ public class CommunicationHandler {
         Validate.isTrue(object.has("urls"), "No webhook urls found in the response: " + response);
         Validate.isTrue(object.get("urls").getAsJsonObject().has("get"), "No get url found in the response:" + response);
         URL getUrl = new URL(object.get("urls").getAsJsonObject().get("get").getAsString());
+        Validate.notNull(getUrl, "No get url found in the response:" + response);
         return getUrl;
     }
 
-    public void requestPrompt(String prompt) throws IOException {
-        URL url = new URL("https://api.replicate.com/v1/predictions");
-        String data = "{\"version\":\"" + SHAPE_VERSION+ "\"" +
-                ",\"input\":{\"prompt\":\"" + prompt + "\",\"grid_size\":" + GRID_SIZE + "}}";
-        request3D(url, data);
-    }
-
-    public void requestImage(String imageUrl) throws IOException {
-        URL url = new URL("https://api.replicate.com/v1/predictions");
-        String data = "{\"version\":\"" + SHAPE_VERSION+ "\"" +
-                ",\"input\":{\"image\":\"" + imageUrl + "\",\"grid_size\":" + GRID_SIZE + "}}";
-        request3D(url, data);
-
-    }
-
-    public void request2DImage(String prompt) throws IOException {
-        URL url = new URL("https://api.replicate.com/v1/predictions");
-        String data = "{\"version\":\"" + "db21e45d3f7023abc2a46ee38a23973f6dce16bb082a930b0c49861f96d1e5bf" + "\"" +
-                ",\"input\":{\"prompt\":\"" + prompt + "\",\"image_dimensions\":\"512x512\"}}";
-        request2D(url, data);
-
-    }
 }

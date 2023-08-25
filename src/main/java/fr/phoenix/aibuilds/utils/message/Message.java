@@ -10,7 +10,7 @@ import java.util.List;
 public enum Message {
     SERVER_COLD_BOOT("&7Cold Boot of the server &f- " +
             "&7Time waited: &6{waited-time} &f- " +
-            "&7Estimated waiting time: &62min"),
+            "&7Estimated waiting time: &65min"),
 
     PROGRESS_MESSAGE("&f{progress-bar} &7{progress}%."),
 
@@ -27,9 +27,8 @@ public enum Message {
     PREDICTION_CANCELED("&7The prediction was canceled."),
     NO_API_TOKEN("&7You didn't fill any API key in the config.yml, this is required for this plugin to work properly."),
 
-    CONSTRUCTION_MODIFICATION("&6slot&a↑&7-&6slot&a↻&7-&6slot&a➕ Size&7-&6slot&a✅&7-&6slot&a❌&7|&6Sneak to inverse action."),
-
-    CONSTRUCTION_MODIFICATION_WITH_DENSITY("&6slot&a↑&7-&6slot&a↻&7-&6slot&a➕ Size&7-&6slot&a➕ Density&7-&6slot&a✅&7-&6slot&a❌&7|&6Sneak to inverse action."),
+    CONSTRUCTION_MODIFICATION("&a{current-batch}/{max-batch}&7|&6slot&aPush&7-&6slot&aPull&7-&6slot&aCW&7-&6slot&aAnti CW" +
+            "&7-&6slot&aUpsize&7-&6slot&aDownsize&7-&6slot&aConfirm&7-&6slot&aDelete"),
 
     CONSTRUCTION_BEING_GENERATED("&7You can't generate a new construction as one is already being generated."),
 

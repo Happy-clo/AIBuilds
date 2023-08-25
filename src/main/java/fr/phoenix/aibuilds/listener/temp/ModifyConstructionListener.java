@@ -2,10 +2,13 @@ package fr.phoenix.aibuilds.listener.temp;
 
 import fr.phoenix.aibuilds.AIBuilds;
 import fr.phoenix.aibuilds.communication.ConstructionHandler;
+import fr.phoenix.aibuilds.placeholders.Placeholders;
 import fr.phoenix.aibuilds.utils.ActionBarRunnable;
 import fr.phoenix.aibuilds.utils.message.Message;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.block.Action;
+import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerItemHeldEvent;
 import org.bukkit.util.Vector;
 
@@ -13,16 +16,16 @@ public class ModifyConstructionListener extends TemporaryListener {
     private final ActionBarRunnable actionBarRunnable;
     private final ConstructionHandler constructionHandler;
 
-    private final boolean includeDensity;
+    private final Placeholders holders = new Placeholders();
 
-
-    public ModifyConstructionListener(ConstructionHandler constructionHandler, boolean includeDensity) {
-        super(PlayerItemHeldEvent.getHandlerList());
+    public ModifyConstructionListener(ConstructionHandler constructionHandler) {
+        super(PlayerItemHeldEvent.getHandlerList(), PlayerInteractEvent.getHandlerList());
         this.constructionHandler = constructionHandler;
-        Message actionBarMessage= includeDensity ? Message.CONSTRUCTION_MODIFICATION_WITH_DENSITY : Message.CONSTRUCTION_MODIFICATION;
-        actionBarRunnable = new ActionBarRunnable(constructionHandler.getPlayer(), formatString(actionBarMessage.format().getAsString()));
+        holders.register("current-batch", constructionHandler.getCurrentBatchIndex() + 1);
+        holders.register("max-batch", constructionHandler.getNumberBatches());
+        actionBarRunnable = new ActionBarRunnable(constructionHandler.getPlayer(),
+                formatString(Message.CONSTRUCTION_MODIFICATION.format().getAsString()),holders);
         actionBarRunnable.runTaskTimer(AIBuilds.plugin, 0L, 10L);
-        this.includeDensity = includeDensity;
     }
 
     public String formatString(String string) {
@@ -37,6 +40,16 @@ public class ModifyConstructionListener extends TemporaryListener {
         return result;
     }
 
+    @EventHandler
+    public void onChangeBatch(PlayerInteractEvent event) {
+        if (!event.getPlayer().equals(constructionHandler.getPlayer()))
+            return;
+        Action action = event.getAction();
+        if (action == Action.LEFT_CLICK_AIR || action == Action.LEFT_CLICK_BLOCK) {
+            constructionHandler.nextBatch();
+            holders.register("current-batch", constructionHandler.getCurrentBatchIndex() + 1);
+        }
+    }
 
     @EventHandler
     public void onModify(PlayerItemHeldEvent event) {
@@ -44,6 +57,7 @@ public class ModifyConstructionListener extends TemporaryListener {
             return;
 
         final Player player = event.getPlayer();
+
 
         /*
          * When the event is cancelled, another playerItemHeldEvent is
@@ -62,35 +76,35 @@ public class ModifyConstructionListener extends TemporaryListener {
          * to the previous one.
          */
         Vector direction = player.getEyeLocation().getDirection();
-        //The effects are reversed when sneaking.
-        direction = player.isSneaking() ? direction.multiply(-1) : direction;
-
         switch (slot) {
             case 0:
                 constructionHandler.pushFrom(direction);
                 break;
             case 1:
-                constructionHandler.rotateClockWiseAround(direction);
-                break;
-            case 2:
-                if (player.isSneaking())
-                    constructionHandler.downSize();
-                else
-                    constructionHandler.upSize();
-                break;
-            //Increasing the density corresponds to decreasing the threshold.
-            case 3:
-                if (player.isSneaking())
-                    constructionHandler.increaseThreshold();
-                else
-                    constructionHandler.decreaseThreshold();
+                constructionHandler.pullFrom(direction);
                 break;
 
-            case 8:
+            case 2:
+                constructionHandler.rotateClockWiseAround(direction);
+                break;
+
+            case 3:
+                constructionHandler.rotateAntiClockWiseAround(direction);
+                break;
+
+            case 4:
+                constructionHandler.upSize();
+                break;
+
+            case 5:
+                constructionHandler.downSize();
+                break;
+
+            case 6:
                 constructionHandler.acceptConstruction();
                 break;
 
-            case 9:
+            case 7:
                 constructionHandler.removeConstruction();
                 break;
 

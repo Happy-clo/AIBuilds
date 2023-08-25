@@ -16,13 +16,19 @@ import java.util.Map;
 
 
 public class ConstructionHandler {
+    private final int FACE_PRECISION = 5;
     private final Location startingLocation;
     private int size;
     private final Player player;
     /**
      * The first dimension has 6 rows that represents the 6 builds AI generated.
      */
-    double[][] points;
+
+    private int currentBatchIndex = 0;
+    private int numberBatches;
+    double[][][] points;
+
+    int[][][] faces;
     /**
      * The material of all the blocks that existed before the construction to be able to rollback.
      */
@@ -31,27 +37,39 @@ public class ConstructionHandler {
     private final Vector yAxis = new Vector(0, 1, 0);
     private final Vector zAxis = new Vector(0, 0, 1);
 
-    private double densityThreshold = 0;
-
-    private final boolean includeThreshold;
-
     private ModifyConstructionListener modifyConstructionListener;
 
 
-    public ConstructionHandler(Player player, Location startingLocation, int size,boolean includeThreshold) {
+    public ConstructionHandler(Player player, Location startingLocation, int size) {
         this.player = player;
         this.startingLocation = startingLocation;
         this.size = size;
-        this.includeThreshold = includeThreshold;
     }
 
     public Player getPlayer() {
         return player;
     }
 
-    public void handleResponse(double[][] points) {
-        modifyConstructionListener = new ModifyConstructionListener(this,includeThreshold);
+    public int getCurrentBatchIndex() {
+        return currentBatchIndex;
+    }
+
+    public int getNumberBatches() {
+        return numberBatches;
+    }
+
+    //TODO: Include this in the constructor to have final fields.
+    public void handleResponse(double[][][] points, int[][][] faces) {
         this.points = points;
+        this.faces = faces;
+        numberBatches = points.length;
+        modifyConstructionListener = new ModifyConstructionListener(this);
+        generate();
+    }
+
+    public void nextBatch() {
+        undoConstruction();
+        currentBatchIndex = (currentBatchIndex + 1) % numberBatches;
         generate();
     }
 
@@ -78,7 +96,6 @@ public class ConstructionHandler {
 
     public void rotateAntiClockWiseAround(Vector axis) {
         undoConstruction();
-        undoConstruction();
         double angle = -(AIBuilds.plugin.configManager.anglePerRotation * Math.PI) / 180;
         xAxis.rotateAroundAxis(axis, angle);
         yAxis.rotateAroundAxis(axis, angle);
@@ -95,18 +112,6 @@ public class ConstructionHandler {
     public void pullFrom(Vector direction) {
         undoConstruction();
         startingLocation.add(direction.multiply(-AIBuilds.plugin.configManager.blocksPerTranslation));
-        generate();
-    }
-
-    public void increaseThreshold() {
-        undoConstruction();
-        densityThreshold += AIBuilds.plugin.configManager.thresholdIncrease;
-        generate();
-    }
-
-    public void decreaseThreshold() {
-        undoConstruction();
-        densityThreshold -= AIBuilds.plugin.configManager.thresholdIncrease;
         generate();
     }
 
@@ -129,24 +134,67 @@ public class ConstructionHandler {
         cachedMaterial.clear();
     }
 
+    private Vector getVectorFromPoints(int i) {
+        Vector vector = xAxis.clone().multiply(points[currentBatchIndex][i][0])
+                .add(yAxis.clone().multiply(points[currentBatchIndex][i][2]))
+                .add(zAxis.clone().multiply(points[currentBatchIndex][i][1]));
+        vector = vector.multiply(size);
+        return new Vector((int) vector.getX(), (int) vector.getY(), (int) vector.getZ());
+    }
+
+    private Vector getColorFromPoints(int i) {
+        return new Vector((int) points[currentBatchIndex][i][3], (int) points[currentBatchIndex][i][4], (int) points[currentBatchIndex][i][5]);
+    }
+
     private void generate() {
         Bukkit.getScheduler().scheduleSyncDelayedTask(AIBuilds.plugin, () -> {
-            int n = points.length;
-            for (int i = 0; i < n; i++) {
-                if (points[i][6] < densityThreshold) continue;
-                //We add 0.5 to each to have numbers between 0 and 1 rather than between -0.5 and 0.5.
-                //This vector enables to get to the point at which the block should be modified
-                Vector vector = xAxis.clone().multiply(points[i][0])
-                        .add(yAxis.clone().multiply(points[i][2]))
-                        .add(zAxis.clone().multiply(points[i][1]));
-                vector = vector.multiply(size);
-                vector = new Vector((int) vector.getX(), (int) vector.getY(), (int) vector.getZ());
-                PaletteBlock paletteBlock = AIBuilds.plugin.paletteManager.getPaletteBlock((int) points[i][3], (int) points[i][4], (int) points[i][5]);
-                Block block = startingLocation.clone().add(vector).getBlock();
-                cachedMaterial.putIfAbsent(vector, block.getType());
-                block.setType(paletteBlock.getMaterial());
-                block.setBlockData(Bukkit.createBlockData(paletteBlock.getMaterial()));
-            }
-        });
+                    int n = points[currentBatchIndex].length;
+                    for (int i = 0; i < n; i++) {
+                        Vector vector = getVectorFromPoints(i);
+                        //We add 0.5 to each to have numbers between 0 and 1 rather than between -0.5 and 0.5.
+                        //This vector enables to get to the point at which the block should be modified
+
+                        //We don't want to modify the same block twice.
+                        if (cachedMaterial.containsKey(vector))
+                            continue;
+                        PaletteBlock paletteBlock = AIBuilds.plugin.paletteManager.getPaletteBlock((int) points[currentBatchIndex][i][3], (int) points[currentBatchIndex][i][4], (int) points[currentBatchIndex][i][5]);
+                        Block block = startingLocation.clone().add(vector).getBlock();
+                        cachedMaterial.put(vector, block.getType());
+                        block.setType(paletteBlock.getMaterial());
+                        block.setBlockData(Bukkit.createBlockData(paletteBlock.getMaterial()));
+                    }
+                    if (faces != null)
+                        //Place the blocks using the face information.
+                        //This is process after the vertex as it a bit less relevant.
+                        for (int i = 0; i < faces[currentBatchIndex].length; i++) {
+                            Vector vertex1 = getVectorFromPoints(faces[currentBatchIndex][i][0]);
+                            Vector vertex2 = getVectorFromPoints(faces[currentBatchIndex][i][1]);
+                            Vector vertex3 = getVectorFromPoints(faces[currentBatchIndex][i][2]);
+                            for (int j = 0; j <= FACE_PRECISION; j++) {
+                                for (int k = 0; k <= FACE_PRECISION - j; k++) {
+                                    int l = FACE_PRECISION - j - k;
+                                    Vector vector = vertex1.clone().multiply(l)
+                                            .add(vertex2.clone().multiply(k))
+                                            .add(vertex3.clone().multiply(j));
+                                    vector = vector.multiply(1.0 / FACE_PRECISION);
+                                    vector = new Vector((int) vector.getX(), (int) vector.getY(), (int) vector.getZ());
+                                    if (cachedMaterial.containsKey(vector))
+                                        continue;
+                                    Vector color = getColorFromPoints(faces[currentBatchIndex][i][0]).clone().multiply(l)
+                                            .add(getColorFromPoints(faces[currentBatchIndex][i][1]).clone().multiply(k))
+                                            .add(getColorFromPoints(faces[currentBatchIndex][i][2]).clone().multiply(j));
+                                    color = color.multiply(1.0 / FACE_PRECISION);
+                                    PaletteBlock paletteBlock = AIBuilds.plugin.paletteManager.getPaletteBlock(
+                                            (int) color.getX(), (int) color.getY(), (int) color.getZ());
+                                    Block block = startingLocation.clone().add(vector).getBlock();
+                                    cachedMaterial.put(vector, block.getType());
+                                    block.setType(paletteBlock.getMaterial());
+                                    block.setBlockData(Bukkit.createBlockData(paletteBlock.getMaterial()));
+                                }
+                            }
+                        }
+                }
+        );
+
     }
 }

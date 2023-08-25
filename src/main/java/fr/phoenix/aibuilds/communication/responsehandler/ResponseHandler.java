@@ -36,7 +36,9 @@ public abstract class ResponseHandler extends BukkitRunnable {
         holders.register("progress", progress);
         holders.register("waited-time", Utils.formatTime(0));
         actionBarRunnable = new ActionBarRunnable(constructionHandler.getPlayer(), Message.SERVER_COLD_BOOT.format().getAsString(), holders);
+        actionBarRunnable.runTaskTimer(AIBuilds.plugin, 0, 10L);
         creationTime = System.currentTimeMillis();
+
     }
 
     public String getProgressBar() {
