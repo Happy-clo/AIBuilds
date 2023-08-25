@@ -19,7 +19,7 @@ import java.net.URL;
 
 public class CommunicationHandler {
 
-    private final String SHAPE_VERSION="eb4d94fa0ba851ba949775e1d6b1966181981799538e01fb6f43883476cc5a66";
+    private final String SHAPE_VERSION="ac9d5d031b897e0eb63a0dbc068c9ac8e7928b72b666f663b204709f1b12dd30";
     private final ConstructionHandler constructionHandler;
     private final int GRID_SIZE = 10;
 
