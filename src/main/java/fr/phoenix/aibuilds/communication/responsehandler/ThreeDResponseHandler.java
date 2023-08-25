@@ -23,7 +23,8 @@ public class ThreeDResponseHandler extends ResponseHandler {
         } else {
 
             String[] logs = object.get("logs").getAsString().split("\n");
-            if (logs.length <= 1)
+            //If there is no log containing the progress as a %
+            if (logs.length <= 1 || !logs[logs.length - 1].contains("%"))
                 holders.register("waited-time", Utils.formatTime(System.currentTimeMillis() - creationTime));
             else {
                 if (!processingStarted) {
@@ -31,7 +32,7 @@ public class ThreeDResponseHandler extends ResponseHandler {
                     actionBarRunnable.setMsg(Message.PROGRESS_MESSAGE.format().getAsString());
                 }
                 String progressString = logs[logs.length - 1];
-                progressString=progressString.replace(" ","");
+                progressString = progressString.replace(" ", "");
                 try {
                     progress = Integer.parseInt(progressString.substring(0, progressString.indexOf("%")));
                 } catch (NumberFormatException | StringIndexOutOfBoundsException e) {
@@ -53,8 +54,10 @@ public class ThreeDResponseHandler extends ResponseHandler {
     @Override
     public void parseJson(JsonObject object) {
         Validate.isTrue(object.has("output"), "The response does not contain an output: " + object);
-        JsonArray output = object.get("output").getAsJsonArray();
-        JsonObject jsonFile = output.get(0).getAsJsonObject();
+        JsonObject output = object.get("output").getAsJsonObject();
+        Validate.isTrue(output.has("result"), "The response does not contain a result: " + output);
+        JsonArray results = output.get("result").getAsJsonArray();
+        JsonObject jsonFile = results.get(0).getAsJsonObject();
         Validate.isTrue(jsonFile.has("points"), "The output does not contain a points array: " + jsonFile);
         JsonArray points = jsonFile.get("points").getAsJsonArray();
         int n = points.size();
